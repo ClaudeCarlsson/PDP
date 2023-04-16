@@ -26,20 +26,20 @@ int main(int argc, char *argv[]) {
     if (rank == 0) {
         FILE *input = fopen(argv[1], "r");
         if (fscanf(input, "%d", &n) != 1) {
-            perror("Error reading n from input file");
+            printf("Error reading n from input file");
             MPI_Abort(MPI_COMM_WORLD, 1);
         }
         A = (double *)malloc(n * n * sizeof(double));
         B = (double *)malloc(n * n * sizeof(double));
         for (int i = 0; i < n * n; i++) {
             if (fscanf(input, "%lf", &A[i]) != 1) {
-                perror("Error reading A from input file");
+                printf("Error reading A from input file");
                 MPI_Abort(MPI_COMM_WORLD, 1);
             }
         }
         for (int i = 0; i < n * n; i++) {
             if (fscanf(input, "%lf", &B[i]) != 1) {
-                perror("Error reading B from input file");
+                printf("Error reading B from input file");
                 MPI_Abort(MPI_COMM_WORLD, 1);
             }
         }

@@ -2,10 +2,11 @@
 #include <stdlib.h>
 #include <mpi.h>
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
     // Initialize variables
     int rank, size, n;
-    double *A= NULL, *B= NULL, *C = NULL;
+    double *A = NULL, *B = NULL, *C = NULL;
 
     // Initialize the MPI environment
     MPI_Init(&argc, &argv);
@@ -13,8 +14,10 @@ int main(int argc, char *argv[]) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
     // Check if the correct number of arguments is provided
-    if (argc != 3) {
-        if (rank == 0) {
+    if (argc != 3)
+    {
+        if (rank == 0)
+        {
             printf("Usage: %s input_file output_file\n", argv[0]);
         }
         MPI_Finalize();
@@ -22,22 +25,28 @@ int main(int argc, char *argv[]) {
     }
 
     // Read input file and allocate memory for matrices A and B (For process 0)
-    if (rank == 0) {
+    if (rank == 0)
+    {
         FILE *input = fopen(argv[1], "r");
-        if (fscanf(input, "%d", &n) != 1) {
+        if (fscanf(input, "%d", &n) != 1)
+        {
             printf("Error reading n from input file");
             MPI_Abort(MPI_COMM_WORLD, 1);
         }
         A = (double *)malloc(n * n * sizeof(double));
         B = (double *)malloc(n * n * sizeof(double));
-        for (int i = 0; i < n * n; i++) {
-            if (fscanf(input, "%lf", &A[i]) != 1) {
+        for (int i = 0; i < n * n; i++)
+        {
+            if (fscanf(input, "%lf", &A[i]) != 1)
+            {
                 printf("Error reading A from input file");
                 MPI_Abort(MPI_COMM_WORLD, 1);
             }
         }
-        for (int i = 0; i < n * n; i++) {
-            if (fscanf(input, "%lf", &B[i]) != 1) {
+        for (int i = 0; i < n * n; i++)
+        {
+            if (fscanf(input, "%lf", &B[i]) != 1)
+            {
                 printf("Error reading B from input file");
                 MPI_Abort(MPI_COMM_WORLD, 1);
             }
@@ -49,7 +58,8 @@ int main(int argc, char *argv[]) {
     MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     // Allocate the memory for matrices A and B (For process not 0)
-    if (rank != 0) {
+    if (rank != 0)
+    {
         A = (double *)malloc(n * n * sizeof(double));
         B = (double *)malloc(n * n * sizeof(double));
     }
@@ -65,29 +75,38 @@ int main(int argc, char *argv[]) {
     double start = MPI_Wtime();
 
     // Perform matrix multiplication in parallel, row-wise
-    for (int i = rank; i < n; i += size) {
-        for (int j = 0; j < n; j++) {
-            for (int k = 0; k < n; k++) {
+    for (int i = rank; i < n; i += size)
+    {
+        for (int j = 0; j < n; j++)
+        {
+            for (int k = 0; k < n; k++)
+            {
                 C[i * n + j] += A[i * n + k] * B[k * n + j];
             }
         }
     }
 
-    // Reduce the partial results to obtain the final result 
-    if (rank == 0) {
+    // Reduce the partial results to obtain the final result
+    if (rank == 0)
+    {
         MPI_Reduce(MPI_IN_PLACE, C, n * n, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-    } else {
+    }
+    else
+    {
         MPI_Reduce(C, C, n * n, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
     }
 
     // Stop the timer
     double end = MPI_Wtime();
 
-    // Write the resulting matrix C to the output file and print the execution time 
-    if (rank == 0) {
+    // Write the resulting matrix C to the output file and print the execution time
+    if (rank == 0)
+    {
         FILE *output = fopen(argv[2], "w");
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j < n; j++)
+            {
                 fprintf(output, "%.6lf ", C[i * n + j]);
             }
             fprintf(output, "\n");

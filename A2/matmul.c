@@ -4,8 +4,7 @@
 
 int main(int argc, char *argv[]) {
     // Initialize variables
-    int rank, size;
-    int n;
+    int rank, size, n;
     double *A= NULL, *B= NULL, *C = NULL;
 
     // Initialize the MPI environment
@@ -22,7 +21,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Read input file and store matrices A and B (only on the root process)
+    // Read input file and allocate memory for matrices A and B (For process 0)
     if (rank == 0) {
         FILE *input = fopen(argv[1], "r");
         if (fscanf(input, "%d", &n) != 1) {
@@ -49,7 +48,7 @@ int main(int argc, char *argv[]) {
     // Broadcast the matrix size to all processes
     MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-    // Allocate memory for matrices A and B on all non-root processes
+    // Allocate the memory for matrices A and B (For process not 0)
     if (rank != 0) {
         A = (double *)malloc(n * n * sizeof(double));
         B = (double *)malloc(n * n * sizeof(double));
@@ -65,7 +64,7 @@ int main(int argc, char *argv[]) {
     // Start the timer
     double start = MPI_Wtime();
 
-    // Perform matrix multiplication in parallel
+    // Perform matrix multiplication in parallel, row-wise
     for (int i = rank; i < n; i += size) {
         for (int j = 0; j < n; j++) {
             for (int k = 0; k < n; k++) {
@@ -84,8 +83,7 @@ int main(int argc, char *argv[]) {
     // Stop the timer
     double end = MPI_Wtime();
 
-    // Write the resulting matrix C to the output file and print the 
-    // execution time (only on the root process)
+    // Write the resulting matrix C to the output file and print the execution time 
     if (rank == 0) {
         FILE *output = fopen(argv[2], "w");
         for (int i = 0; i < n; i++) {

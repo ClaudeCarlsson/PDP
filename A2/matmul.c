@@ -2,59 +2,76 @@
 #include <stdlib.h>
 #include <mpi.h>
 
-int main(int argc, char *argv[])
+//mpirun -n 16 ./matmul input.txt output.txt
+
+int main(int argc, char *argv[]) 
 {
-    // Initialize variables
+    // Initialize variables for MPI
     int rank, size, n;
-    double *A = NULL, *B = NULL, *C = NULL;
 
     // Initialize the MPI environment
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    // Check if the correct number of arguments is provided
+    // Check if the correct number of arguments is provided (For process 0)
     if (argc != 3)
     {
         if (rank == 0)
         {
-            printf("Usage: %s input_file output_file\n", argv[0]);
+            printf("Usage: %s <input_file> <output_file>\n", argv[0]);
         }
         MPI_Finalize();
         return 1;
     }
 
-    // Read input file and allocate memory for matrices A and B (For process 0)
+    // Initialize variables for the matrix multiplication
+    double *A = NULL, *B = NULL, *C = NULL;
+
+    // Read the input file and allocate memory for matrices A and B (For process 0)
     if (rank == 0)
     {
+        // Open file
         FILE *input = fopen(argv[1], "r");
+
+        // Read n from input file
+        int n;
         if (fscanf(input, "%d", &n) != 1)
         {
-            printf("Error reading n from input file");
+            printf("Error when reading n from input file");
             MPI_Abort(MPI_COMM_WORLD, 1);
         }
+
+        // Allocate and read matrix A from input file
         A = (double *)malloc(n * n * sizeof(double));
-        B = (double *)malloc(n * n * sizeof(double));
         for (int i = 0; i < n * n; i++)
         {
             if (fscanf(input, "%lf", &A[i]) != 1)
             {
-                printf("Error reading A from input file");
+                printf("Error when reading A from input file");
                 MPI_Abort(MPI_COMM_WORLD, 1);
             }
         }
+
+        // Allocate and read matrix B from input file
+        B = (double *)malloc(n * n * sizeof(double));
         for (int i = 0; i < n * n; i++)
         {
             if (fscanf(input, "%lf", &B[i]) != 1)
             {
-                printf("Error reading B from input file");
+                printf("Error when reading B from input file");
                 MPI_Abort(MPI_COMM_WORLD, 1);
             }
         }
+
+        // Close file
         fclose(input);
     }
 
-    // Broadcast the matrix size to all processes
+    // Start the timer
+    double start = MPI_Wtime();
+
+    // Broadcast the matrix size to all processes from process 0
     MPI_Bcast(&n, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     // Allocate the memory for matrices A and B (For process not 0)
@@ -64,15 +81,12 @@ int main(int argc, char *argv[])
         B = (double *)malloc(n * n * sizeof(double));
     }
 
-    // Broadcast the matrices A and B to all processes
-    MPI_Bcast(A, n * n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Bcast(B, n * n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
     // Allocate memory for the result matrix C
     C = (double *)calloc(n * n, sizeof(double));
 
-    // Start the timer
-    double start = MPI_Wtime();
+    // Broadcast the matrices A and B to all processes
+    MPI_Bcast(A, n * n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Bcast(B, n * n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     // Perform matrix multiplication in parallel, row-wise
     for (int i = rank; i < n; i += size)
@@ -86,7 +100,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    // Reduce the partial results to obtain the final result
+    // Reduce the partial results to get the final result (For process 0)
     if (rank == 0)
     {
         MPI_Reduce(MPI_IN_PLACE, C, n * n, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
@@ -99,10 +113,12 @@ int main(int argc, char *argv[])
     // Stop the timer
     double end = MPI_Wtime();
 
-    // Write the resulting matrix C to the output file and print the execution time
+    // Write the resulting matrix C to the output file and print the execution time (For process 0)
     if (rank == 0)
     {
+        // Open the file 
         FILE *output = fopen(argv[2], "w");
+
         for (int i = 0; i < n; i++)
         {
             for (int j = 0; j < n; j++)
@@ -111,8 +127,11 @@ int main(int argc, char *argv[])
             }
             fprintf(output, "\n");
         }
+
+        // Close the file
         fclose(output);
 
+        // Print the time
         printf("%.6lf\n", end - start);
     }
 

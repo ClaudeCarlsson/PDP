@@ -88,13 +88,17 @@ int main(int argc, char *argv[])
     MPI_Bcast(A, n * n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(B, n * n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    // Perform matrix multiplication in parallel, row-wise
-    for (int i = rank; i < n; i += size)
+    // The matrix multiplication, partitioning done row-wise
+    for (int i = rank; i < n; i += size) 
+    // i: current row of matrix A 
     {
-        for (int j = 0; j < n; j++)
+        for (int j = 0; j < n; j++) 
+        // j: current column of matrix B
         {
-            for (int k = 0; k < n; k++)
+            for (int k = 0; k < n; k++) 
+            // k: current index being multiplied and summed for the row of matrix A and column of matrix B
             {
+                // C[i][j] += A[i][k] and B[k][j] 
                 C[i * n + j] += A[i * n + k] * B[k * n + j];
             }
         }

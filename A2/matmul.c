@@ -64,18 +64,6 @@ int main(int argc, char *argv[])
 
         // Close file
         fclose(input);
-
-        // Transpose matrix B
-        double *transposeB = (double *)malloc(n * n * sizeof(double));
-        for (int i = 0; i < n; i++)
-        {
-            for (int j = 0; j < n; j++)
-            {
-                transposeB[j * n + i] = B[i * n + j];
-            }
-        }
-        free(B);
-        B = transposeB;
     }
 
     // Start the timer
@@ -161,8 +149,8 @@ int main(int argc, char *argv[])
                 {
                     for (int k = 0; k < n; k++)
                     {
-                        printf("Rank %d: local_A[%d][%d] = %.2lf * local_B[%d][%d] = %.2lf\n", rank, i, k, local_A[i * n + k], j, k, local_B[j * n + k]);
-                        C[i * n + j] += local_A[i * n + k] * local_B[j * n + k];
+                        printf("Rank %d: local_A[%d][%d] = %.2lf * local_B[%d][%d] = %.2lf\n", rank, i, k, local_A[i * n + k], k, j, local_B[k * n + j]);
+                        C[i * n + j] += local_A[i * n + k] * local_B[k * n + j];
                     }
                     printf("Rank %d: Current index for C: C[%d][%d] = C[%d]\n", rank, i, j, i * n + j);
                 }
@@ -173,12 +161,14 @@ int main(int argc, char *argv[])
     }
 
 
+
     // Gather the results using MPI_Gatherv
     MPI_Barrier(MPI_COMM_WORLD);
     MPI_Gatherv(C, n * rows_per_process, MPI_DOUBLE, C, recvcounts, displs, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     // Stop the timer
     double end = MPI_Wtime();
+
     // Write the resulting matrix C to the output file and print the execution time (For process 0)
     if (rank == 0)
     {

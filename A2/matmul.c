@@ -97,33 +97,22 @@ int main(int argc, char *argv[])
     // Distribute the matrices A and B to all processes using MPI_Scatterv
     int rows_per_process = n / size;
 
-    int *sendcounts_A = (int *)malloc(size * sizeof(int));
-    int *displs_A = (int *)malloc(size * sizeof(int));
-    int *sendcounts_B = (int *)malloc(size * sizeof(int));
-    int *displs_B = (int *)malloc(size * sizeof(int));
+    int *sendcounts = (int *)malloc(size * sizeof(int));
     int *recvcounts = (int *)malloc(size * sizeof(int));
     int *displs = (int *)malloc(size * sizeof(int));
 
-    int rows_sent = 0;
     for (int i = 0; i < size; i++)
     {
-        int current_rows_per_process = n / size + (i < (n % size) ? 1 : 0);
-        sendcounts_A[i] = current_rows_per_process * n;
-        displs_A[i] = rows_sent * n;
-        sendcounts_B[i] = current_rows_per_process * n;
-        displs_B[i] = rows_sent * n;
-        recvcounts[i] = current_rows_per_process * n;
-        displs[i] = rows_sent * n;
-        rows_sent += current_rows_per_process;
+        sendcounts[i] = rows_per_process * n;
+        recvcounts[i] = rows_per_process * n;
+        displs[i] = i * rows_per_process * n;
     }
-
-
 
     double *local_A = (double *)malloc(rows_per_process * n * sizeof(double));
     double *local_B = (double *)malloc(rows_per_process * n * sizeof(double));
 
-    MPI_Scatterv(A, sendcounts_A, displs_A, MPI_DOUBLE, local_A, n * n / size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    MPI_Scatterv(B, sendcounts_B, displs_B, MPI_DOUBLE, local_B, n * n / size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(A, sendcounts, displs, MPI_DOUBLE, local_A, n * rows_per_process, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Scatterv(B, sendcounts, displs, MPI_DOUBLE, local_B, n * rows_per_process, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     // Print the parts of the matrices each rank has
     for (int r = 0; r < size; r++)
@@ -218,10 +207,7 @@ int main(int argc, char *argv[])
     free(C);
 
     // Free allocated memory for sendcounts and displacements
-    free(sendcounts_A);
-    free(displs_A);
-    free(sendcounts_B);
-    free(displs_B);
+    free(sendcounts);
     free(recvcounts);
     free(displs);
 
